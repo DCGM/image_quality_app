@@ -23,20 +23,17 @@ async def add_rating_request(db: AsyncSession, rating_request: base_objects.Rati
         DBError: If there is an error adding the RatingRequest to the database.
     """
     try:
-        async with db.begin():
-            db_request = RatingRequest(
-                id=UUID(rating_request.id),
-                chunk=rating_request.chunk.model_dump_json(),
-                titles_lists=json.dumps([[t.model_dump() for t in titles] for titles in rating_request.titles_lists]),
-                ratings_requested=rating_request.ratings_requested,
-                ratings_done=rating_request.ratings_done,
-                ratings_to_go=rating_request.ratings_to_go,
-                rnd_number=func.random(),
-                created_at=datetime.utcnow()
-            )
-            db.add(db_request)
-            await db.commit()
-
+        db_request = RatingRequest(
+            id=UUID(rating_request.id),
+            chunk=rating_request.chunk.model_dump_json(),
+            titles_lists=json.dumps([[t.model_dump() for t in titles] for titles in rating_request.titles_lists]),
+            ratings_requested=rating_request.ratings_requested,
+            ratings_done=rating_request.ratings_done,
+            ratings_to_go=rating_request.ratings_to_go,
+            rnd_number=func.random(),
+            created_at=datetime.utcnow()
+        )
+        db.add(db_request)
     except exc.SQLAlchemyError as e:
         logging.exception('Failed adding RatingRequest to database.')
         raise DBError('Failed adding RatingRequest to database.') from e
@@ -55,36 +52,35 @@ async def get_random_rating_request(db: AsyncSession, user_id: UUID) -> RatingRe
     """
 
     try:
-        async with db.begin():
-            stmt = (
-                select(RatingRequest)
-                .outerjoin(RatingResponse, and_(
-                    RatingRequest.id == RatingResponse.request_id,
-                    RatingResponse.user_id == user_id
-                ))
-                .where(and_(
-                    RatingRequest.ratings_to_go > 0,
-                    RatingResponse.request_id.is_(None)  # No rating by this user
-                ))
-                .order_by(RatingRequest.rnd_number)
-                .limit(1)
-            )
+        stmt = (
+            select(RatingRequest)
+            .outerjoin(RatingResponse, and_(
+                RatingRequest.id == RatingResponse.request_id,
+                RatingResponse.user_id == user_id
+            ))
+            .where(and_(
+                RatingRequest.ratings_to_go > 0,
+                RatingResponse.request_id.is_(None)  # No rating by this user
+            ))
+            .order_by(RatingRequest.rnd_number)
+            .limit(1)
+        )
 
-            result = await db.execute(stmt)
-            db_request = result.scalar_one_or_none()
-            if db_request is None:
-                raise DBError('No available rating requests found.')
+        result = await db.execute(stmt)
+        db_request = result.scalar_one_or_none()
+        if db_request is None:
+            raise DBError('No available rating requests found.')
 
-            return base_objects.RatingRequest(
-                id=str(db_request.id),
-                chunk=base_objects.ChunkImport.model_validate_json(db_request.chunk),
-                titles_lists=[[base_objects.TitleImport.model_validate(t) for t in titles]
-                    for titles in json.loads(db_request.titles_lists)],
-                ratings_requested=db_request.ratings_requested,
-                ratings_done=db_request.ratings_done,
-                ratings_to_go=db_request.ratings_to_go,
-                created_at=db_request.created_at
-            )
+        return base_objects.RatingRequest(
+            id=str(db_request.id),
+            chunk=base_objects.ChunkImport.model_validate_json(db_request.chunk),
+            titles_lists=[[base_objects.TitleImport.model_validate(t) for t in titles]
+                for titles in json.loads(db_request.titles_lists)],
+            ratings_requested=db_request.ratings_requested,
+            ratings_done=db_request.ratings_done,
+            ratings_to_go=db_request.ratings_to_go,
+            created_at=db_request.created_at
+        )
 
     except exc.SQLAlchemyError as e:
         logging.exception('Failed fetching random RatingRequest from database.')
@@ -102,29 +98,27 @@ async def save_rating_response(db: AsyncSession, rating_response: base_objects.R
         DBError: If there is an error saving the RatingResponse to the database.
     """
     try:
-        async with db.begin():
-            db_response = RatingResponse(
-                request_id=UUID(rating_response.request_id),
-                user_id=user_id,
-                start_time=rating_response.start_time,
-                end_time=rating_response.end_time,
-                created_at=datetime.utcnow(),
-                ratings=json.dumps([sr.model_dump()
-                                    for sr in rating_response.ratings], default=str)
-            )
-            db.add(db_response)
+        db_response = RatingResponse(
+            request_id=UUID(rating_response.request_id),
+            user_id=user_id,
+            start_time=rating_response.start_time,
+            end_time=rating_response.end_time,
+            created_at=datetime.utcnow(),
+            ratings=json.dumps([sr.model_dump()
+                                for sr in rating_response.ratings], default=str)
+        )
+        db.add(db_response)
 
-            # Update the corresponding RatingRequest
-            stmt = (
-                update(RatingRequest)
-                .where(RatingRequest.id == UUID(rating_response.request_id))
-                .values(
-                    ratings_done=RatingRequest.ratings_done + 1,
-                    ratings_to_go=RatingRequest.ratings_to_go - 1,
-                )
+        # Update the corresponding RatingRequest
+        stmt = (
+            update(RatingRequest)
+            .where(RatingRequest.id == UUID(rating_response.request_id))
+            .values(
+                ratings_done=RatingRequest.ratings_done + 1,
+                ratings_to_go=RatingRequest.ratings_to_go - 1,
             )
-            await db.execute(stmt)
-            await db.commit()
+        )
+        await db.execute(stmt)
 
     except exc.SQLAlchemyError as e:
         logging.exception('Failed saving RatingResponse to database.')

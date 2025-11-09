@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, WriteOnlyMapped, mapped_column, relationship,
 from sqlalchemy import ForeignKey
 from sqlalchemy.types import String
 
+from title_annotator.database import Base
 from datetime import datetime
 import uuid
 from random import randint

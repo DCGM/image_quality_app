@@ -15,14 +15,12 @@ from title_annotator.config import config
 
 from contextlib import asynccontextmanager
 
+from title_annotator.routes import rating_route
+
 
 tags_metadata = [
     {
-        "name": "Document",
-        "description": "",
-    },
-    {
-        "name": "Image",
+        "name": "Rating",
         "description": "",
     }
 ]
@@ -35,6 +33,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(openapi_tags=tags_metadata, title="Scribble Sense", version="0.1.0", lifespan=lifespan)  #, root_path=config.APP_URL_ROOT)
+
+app.include_router(rating_route, prefix="/api/rating", tags=["Rating"])
 
 app.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
