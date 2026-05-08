@@ -1,25 +1,102 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Scribble Sense",
+    "title": "text-classifier",
     "version": "0.1.0"
   },
   "paths": {
-    "/api/rating/request": {
+    "/api/tasks": {
       "get": {
-        "tags": [
-          "Rating"
-        ],
-        "summary": "Get Rating Request",
-        "description": "Get random rating request for the current user.",
-        "operationId": "get_rating_request_api_rating_request_get",
+        "summary": "Tasks",
+        "operationId": "tasks_api_tasks_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RatingRequest"
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDefinition"
+                  },
+                  "type": "array",
+                  "title": "Response Tasks Api Tasks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}": {
+      "get": {
+        "summary": "Task",
+        "operationId": "task_api_tasks__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDefinition"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/texts/next": {
+      "post": {
+        "summary": "Next Text",
+        "operationId": "next_text_api_texts_next_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextTextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -30,19 +107,17 @@
             "OAuth2PasswordBearer": []
           }
         ]
-      },
+      }
+    },
+    "/api/annotations": {
       "post": {
-        "tags": [
-          "Rating"
-        ],
-        "summary": "Post Rating Request",
-        "description": "Add a new rating request.",
-        "operationId": "post_rating_request_api_rating_request_post",
+        "summary": "Annotations",
+        "operationId": "annotations_api_annotations_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RatingRequestNew"
+                "$ref": "#/components/schemas/AnnotationSubmit"
               }
             }
           },
@@ -75,19 +150,167 @@
         ]
       }
     },
-    "/api/rating/response": {
-      "post": {
-        "tags": [
-          "Rating"
+    "/api/stats/me": {
+      "get": {
+        "summary": "Stats Me",
+        "operationId": "stats_me_api_stats_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/stats/leaderboard/{task_id}": {
+      "get": {
+        "summary": "Stats Lb",
+        "operationId": "stats_lb_api_stats_leaderboard__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
         ],
-        "summary": "Add Rating Response",
-        "description": "Add a new rating response.",
-        "operationId": "add_rating_response_api_rating_response_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tasks": {
+      "post": {
+        "summary": "Admin Task",
+        "operationId": "admin_task_api_admin_tasks_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RatingResponseNew"
+                "$ref": "#/components/schemas/TaskDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/tasks/{task_id}": {
+      "patch": {
+        "summary": "Admin Task Patch",
+        "operationId": "admin_task_patch_api_admin_tasks__task_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskStatePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/texts": {
+      "post": {
+        "summary": "Admin Texts",
+        "operationId": "admin_texts_api_admin_texts_post",
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string",
+                "title": "Lines"
               }
             }
           },
@@ -265,215 +488,6 @@
                         "code": "REGISTER_INVALID_PASSWORD",
                         "reason": "Password should beat least 3 characters"
                       }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/forgot-password": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Reset:Forgot Password",
-        "operationId": "reset_forgot_password_auth_forgot_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_reset_forgot_password_auth_forgot_password_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/reset-password": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Reset:Reset Password",
-        "operationId": "reset_reset_password_auth_reset_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_reset_reset_password_auth_reset_password_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                },
-                "examples": {
-                  "RESET_PASSWORD_BAD_TOKEN": {
-                    "summary": "Bad or expired token.",
-                    "value": {
-                      "detail": "RESET_PASSWORD_BAD_TOKEN"
-                    }
-                  },
-                  "RESET_PASSWORD_INVALID_PASSWORD": {
-                    "summary": "Password validation failed.",
-                    "value": {
-                      "detail": {
-                        "code": "RESET_PASSWORD_INVALID_PASSWORD",
-                        "reason": "Password should be at least 3 characters"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/request-verify-token": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Verify:Request-Token",
-        "operationId": "verify_request_token_auth_request_verify_token_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_verify_request_token_auth_request_verify_token_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/verify": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Verify:Verify",
-        "operationId": "verify_verify_auth_verify_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_verify_verify_auth_verify_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserRead"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                },
-                "examples": {
-                  "VERIFY_USER_BAD_TOKEN": {
-                    "summary": "Bad token, not existing user ornot the e-mail currently set for the user.",
-                    "value": {
-                      "detail": "VERIFY_USER_BAD_TOKEN"
-                    }
-                  },
-                  "VERIFY_USER_ALREADY_VERIFIED": {
-                    "summary": "The user is already verified.",
-                    "value": {
-                      "detail": "VERIFY_USER_ALREADY_VERIFIED"
                     }
                   }
                 }
@@ -793,6 +807,27 @@
   },
   "components": {
     "schemas": {
+      "AnnotationSubmit": {
+        "properties": {
+          "text_id": {
+            "type": "string",
+            "title": "Text Id"
+          },
+          "annotations": {
+            "items": {
+              "$ref": "#/components/schemas/TaskAnnotation"
+            },
+            "type": "array",
+            "title": "Annotations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text_id",
+          "annotations"
+        ],
+        "title": "AnnotationSubmit"
+      },
       "BearerResponse": {
         "properties": {
           "access_token": {
@@ -870,126 +905,6 @@
         ],
         "title": "Body_auth_jwt_login_auth_jwt_login_post"
       },
-      "Body_reset_forgot_password_auth_forgot_password_post": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "Body_reset_forgot_password_auth_forgot_password_post"
-      },
-      "Body_reset_reset_password_auth_reset_password_post": {
-        "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "token",
-          "password"
-        ],
-        "title": "Body_reset_reset_password_auth_reset_password_post"
-      },
-      "Body_verify_request_token_auth_request_verify_token_post": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "Body_verify_request_token_auth_request_verify_token_post"
-      },
-      "Body_verify_verify_auth_verify_post": {
-        "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          }
-        },
-        "type": "object",
-        "required": [
-          "token"
-        ],
-        "title": "Body_verify_verify_auth_verify_post"
-      },
-      "ChunkImport": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "text": {
-            "type": "string",
-            "title": "Text"
-          },
-          "start_page_id": {
-            "type": "string",
-            "title": "Start Page Id"
-          },
-          "from_page": {
-            "type": "integer",
-            "title": "From Page"
-          },
-          "to_page": {
-            "type": "integer",
-            "title": "To Page"
-          },
-          "order": {
-            "type": "integer",
-            "title": "Order"
-          },
-          "language": {
-            "type": "string",
-            "title": "Language"
-          },
-          "vector_index": {
-            "type": "integer",
-            "title": "Vector Index"
-          },
-          "document": {
-            "type": "string",
-            "title": "Document"
-          },
-          "generated_titles": {
-            "items": {
-              "$ref": "#/components/schemas/TitleImport"
-            },
-            "type": "array",
-            "title": "Generated Titles"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "text",
-          "start_page_id",
-          "from_page",
-          "to_page",
-          "order",
-          "language",
-          "vector_index",
-          "document",
-          "generated_titles"
-        ],
-        "title": "ChunkImport"
-      },
       "ErrorModel": {
         "properties": {
           "detail": {
@@ -1026,197 +941,59 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
-      "RatedTitle": {
+      "NextTextRequest": {
+        "properties": {
+          "task_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Task Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_ids"
+        ],
+        "title": "NextTextRequest"
+      },
+      "NextTextResponse": {
         "properties": {
           "id": {
             "type": "string",
             "title": "Id"
           },
-          "generated_title": {
+          "text": {
             "type": "string",
-            "title": "Generated Title"
+            "title": "Text"
           },
-          "model": {
+          "language": {
             "type": "string",
-            "title": "Model"
-          },
-          "query": {
-            "type": "string",
-            "title": "Query"
-          },
-          "prompt": {
-            "type": "string",
-            "title": "Prompt"
-          },
-          "preferred": {
-            "type": "boolean",
-            "title": "Preferred",
-            "default": false
-          },
-          "is_irrelevant": {
-            "type": "boolean",
-            "title": "Is Irrelevant",
-            "default": false
-          },
-          "is_gibberish": {
-            "type": "boolean",
-            "title": "Is Gibberish",
-            "default": false
-          },
-          "is_relevant": {
-            "type": "boolean",
-            "title": "Is Relevant",
-            "default": false
+            "title": "Language"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "generated_title",
-          "model",
-          "query",
-          "prompt"
+          "text",
+          "language"
         ],
-        "title": "RatedTitle"
+        "title": "NextTextResponse"
       },
-      "RatingRequest": {
+      "TaskAnnotation": {
         "properties": {
-          "id": {
+          "task_id": {
             "type": "string",
-            "title": "Id"
+            "title": "Task Id"
           },
-          "chunk": {
-            "$ref": "#/components/schemas/ChunkImport"
-          },
-          "titles_lists": {
+          "selected_classes": {
             "items": {
-              "items": {
-                "$ref": "#/components/schemas/TitleImport"
-              },
-              "type": "array"
+              "type": "string"
             },
             "type": "array",
-            "title": "Titles Lists"
-          },
-          "ratings_requested": {
-            "type": "integer",
-            "title": "Ratings Requested"
-          },
-          "ratings_done": {
-            "type": "integer",
-            "title": "Ratings Done"
-          },
-          "ratings_to_go": {
-            "type": "integer",
-            "title": "Ratings To Go"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "chunk",
-          "titles_lists",
-          "ratings_requested",
-          "ratings_done",
-          "ratings_to_go",
-          "created_at"
-        ],
-        "title": "RatingRequest"
-      },
-      "RatingRequestNew": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "chunk": {
-            "$ref": "#/components/schemas/ChunkImport"
-          },
-          "titles_lists": {
-            "items": {
-              "items": {
-                "$ref": "#/components/schemas/TitleImport"
-              },
-              "type": "array"
-            },
-            "type": "array",
-            "title": "Titles Lists"
-          },
-          "ratings_requested": {
-            "type": "integer",
-            "title": "Ratings Requested"
-          },
-          "ratings_done": {
-            "type": "integer",
-            "title": "Ratings Done"
-          },
-          "ratings_to_go": {
-            "type": "integer",
-            "title": "Ratings To Go"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "chunk",
-          "titles_lists",
-          "ratings_requested",
-          "ratings_done",
-          "ratings_to_go"
-        ],
-        "title": "RatingRequestNew"
-      },
-      "RatingResponseNew": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "request_id": {
-            "type": "string",
-            "title": "Request Id"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start Time"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "End Time"
-          },
-          "ratings": {
-            "items": {
-              "$ref": "#/components/schemas/SingleRating"
-            },
-            "type": "array",
-            "title": "Ratings"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "request_id",
-          "start_time",
-          "end_time",
-          "ratings"
-        ],
-        "title": "RatingResponseNew"
-      },
-      "SingleRating": {
-        "properties": {
-          "titles": {
-            "items": {
-              "$ref": "#/components/schemas/RatedTitle"
-            },
-            "type": "array",
-            "title": "Titles"
+            "title": "Selected Classes"
           },
           "start_time": {
             "type": "string",
@@ -1231,44 +1008,103 @@
         },
         "type": "object",
         "required": [
-          "titles",
+          "task_id",
+          "selected_classes",
           "start_time",
           "end_time"
         ],
-        "title": "SingleRating"
+        "title": "TaskAnnotation"
       },
-      "TitleImport": {
+      "TaskClass": {
         "properties": {
           "id": {
             "type": "string",
             "title": "Id"
           },
-          "generated_title": {
+          "label_en": {
             "type": "string",
-            "title": "Generated Title"
+            "title": "Label En"
           },
-          "model": {
+          "label_cs": {
             "type": "string",
-            "title": "Model"
-          },
-          "query": {
-            "type": "string",
-            "title": "Query"
-          },
-          "prompt": {
-            "type": "string",
-            "title": "Prompt"
+            "title": "Label Cs"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "generated_title",
-          "model",
-          "query",
-          "prompt"
+          "label_en",
+          "label_cs"
         ],
-        "title": "TitleImport"
+        "title": "TaskClass"
+      },
+      "TaskDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description_md": {
+            "type": "string",
+            "title": "Description Md"
+          },
+          "multi_choice": {
+            "type": "boolean",
+            "title": "Multi Choice"
+          },
+          "max_choices": {
+            "type": "integer",
+            "title": "Max Choices",
+            "default": 1
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/TaskClass"
+            },
+            "type": "array",
+            "title": "Classes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description_md",
+          "multi_choice",
+          "classes"
+        ],
+        "title": "TaskDefinition"
+      },
+      "TaskStatePatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "deleted": {
+            "type": "boolean",
+            "title": "Deleted",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "TaskStatePatch"
       },
       "UserCreate": {
         "properties": {
@@ -1445,6 +1281,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -1467,11 +1310,5 @@
         }
       }
     }
-  },
-  "tags": [
-    {
-      "name": "Rating",
-      "description": ""
-    }
-  ]
+  }
 }

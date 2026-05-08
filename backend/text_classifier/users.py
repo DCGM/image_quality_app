@@ -9,14 +9,14 @@ from fastapi_users.authentication import (
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
 
-from title_annotator.database import User, get_user_db
+from text_classifier.database import User, get_user_db
 
-from title_annotator.config import config
+from text_classifier.config import config
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    reset_password_token_secret = "SOME SECRET_KEY"
-    verification_token_secret = "SOME VERIFICATION SECRET_KEY"
+    reset_password_token_secret = config.SECRET
+    verification_token_secret = config.SECRET
 
     async def on_after_register(self, user: User, request: Request | None = None):
         print(f"User {user.id} has registered.")

@@ -1,60 +1,35 @@
-// API Type Definitions based on Pydantic models
-
-export interface TitleImport {
+export interface TaskClass {
   id: string;
-  generated_title: string;
-  model: string;
-  query: string;
-  prompt: string;
+  label_en: string;
+  label_cs: string;
 }
 
-export interface ChunkImport {
+export interface TaskDefinition {
+  id: string;
+  name: string;
+  description_md: string;
+  multi_choice: boolean;
+  max_choices: number;
+  enabled: boolean;
+  classes: TaskClass[];
+}
+
+export interface NextTextResponse {
   id: string;
   text: string;
-  start_page_id: string;
-  from_page: number;
-  to_page: number;
-  order: number;
   language: string;
-  vector_index: number;
-  document: string;
-  generated_titles: TitleImport[];
 }
 
-export interface RatedTitle extends TitleImport {
-  preferred: boolean;
-  is_irrelevant: boolean;
-  is_gibberish: boolean;
-  is_relevant: boolean;
-  is_hallucination: boolean;
-  is_long: boolean;
+export interface TaskAnnotation {
+  task_id: string;
+  selected_classes: string[];
+  start_time: string;
+  end_time: string;
 }
 
-export interface SingleRating {
-  titles: RatedTitle[];
-  start_time: string; // ISO datetime string
-  end_time: string; // ISO datetime string
-}
-
-export interface RatingResponseNew {
-  id: string;
-  request_id: string;
-  start_time: string; // ISO datetime string
-  end_time: string; // ISO datetime string
-  ratings: SingleRating[];
-}
-
-export interface RatingRequestNew {
-  id: string;
-  chunk: ChunkImport;
-  titles_lists: TitleImport[][];
-  ratings_requested: number;
-  ratings_done: number;
-  ratings_to_go: number;
-}
-
-export interface RatingRequest extends RatingRequestNew {
-  created_at: string; // ISO datetime string
+export interface AnnotationSubmit {
+  text_id: string;
+  annotations: TaskAnnotation[];
 }
 
 export interface UserRead {
@@ -73,9 +48,6 @@ export interface LoginRequest {
 export interface UserCreate {
   email: string;
   password: string;
-  is_active?: boolean;
-  is_superuser?: boolean;
-  is_verified?: boolean;
 }
 
 export interface BearerResponse {

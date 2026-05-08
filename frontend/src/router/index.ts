@@ -45,7 +45,7 @@ export default route(function (/* { store, ssrContext } */) {
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
       next('/login');
     } else if (to.path === '/login' && authStore.isAuthenticated) {
-      next('/rating');
+      next('/tasks');
     } else {
       next();
     }

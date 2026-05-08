@@ -140,7 +140,7 @@ const onSubmit = async () => {
       message: 'Login successful',
     });
 
-    router.push('/rating');
+    router.push('/tasks');
   } catch (error) {
     const err = error as { response?: { data?: { detail?: string } } };
     $q.notify({
@@ -158,9 +158,6 @@ const onRegister = async () => {
     await apiService.register({
       email: registerEmail.value,
       password: registerPassword.value,
-      is_active: true,
-      is_superuser: false,
-      is_verified: false,
     });
 
     $q.notify({
