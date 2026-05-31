@@ -4,25 +4,26 @@ from datetime import datetime
 import uuid
 
 from fastapi_users import schemas
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
-    pass
+    display_name: str | None = None
 
 
 class UserCreate(schemas.BaseUserCreate):
-    pass
+    display_name: str | None = None
 
 
 class UserUpdate(schemas.BaseUserUpdate):
-    pass
+    display_name: str | None = None
 
 
 class TaskClass(BaseModel):
     id: str
     label_en: str
     label_cs: str
+    description: str | None = None
 
 
 class TaskDefinition(BaseModel):
@@ -30,9 +31,17 @@ class TaskDefinition(BaseModel):
     name: str
     description_md: str
     multi_choice: bool
-    max_choices: int = 1
+    max_choices: int = Field(default=1, ge=1)
     enabled: bool = True
-    classes: list[TaskClass]
+    classes: list[TaskClass] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def validate_choice_limits(self) -> 'TaskDefinition':
+        if not self.multi_choice and self.max_choices != 1:
+            raise ValueError('Single-choice tasks must have max_choices set to 1')
+        if self.max_choices > len(self.classes):
+            raise ValueError('max_choices cannot exceed the number of classes')
+        return self
 
 
 class TaskStatePatch(BaseModel):
@@ -60,3 +69,36 @@ class TaskAnnotation(BaseModel):
 class AnnotationSubmit(BaseModel):
     text_id: str
     annotations: list[TaskAnnotation]
+
+
+class LeaderboardEntry(BaseModel):
+    user_id: str
+    display_name: str
+    count: int
+
+
+class TextItemResponse(BaseModel):
+    id: str
+    text_preview: str
+    language: str
+    suspended: bool
+
+
+class TextListResponse(BaseModel):
+    total: int
+    items: list[TextItemResponse]
+
+
+class TextPatch(BaseModel):
+    suspended: bool
+
+
+class TaskStats(BaseModel):
+    task_id: str
+    task_name: str
+    count: int
+
+
+class GlobalStats(BaseModel):
+    total_annotations: int
+    per_task: list[TaskStats]

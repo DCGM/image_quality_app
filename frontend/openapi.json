@@ -209,6 +209,31 @@
       }
     },
     "/api/admin/tasks": {
+      "get": {
+        "summary": "Admin Tasks",
+        "operationId": "admin_tasks_api_admin_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDefinition"
+                  },
+                  "type": "array",
+                  "title": "Response Admin Tasks Api Admin Tasks Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
       "post": {
         "summary": "Admin Task",
         "operationId": "admin_task_api_admin_tasks_post",
@@ -250,6 +275,56 @@
       }
     },
     "/api/admin/tasks/{task_id}": {
+      "put": {
+        "summary": "Admin Task Put",
+        "operationId": "admin_task_put_api_admin_tasks__task_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskDefinition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "summary": "Admin Task Patch",
         "operationId": "admin_task_patch_api_admin_tasks__task_id__patch",
@@ -299,6 +374,27 @@
             }
           }
         }
+      }
+    },
+    "/api/admin/tasks/import-prompts": {
+      "post": {
+        "summary": "Admin Import Prompts",
+        "operationId": "admin_import_prompts_api_admin_tasks_import_prompts_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
     "/api/admin/texts": {
@@ -1058,6 +1154,7 @@
           },
           "max_choices": {
             "type": "integer",
+            "minimum": 1.0,
             "title": "Max Choices",
             "default": 1
           },
@@ -1071,6 +1168,7 @@
               "$ref": "#/components/schemas/TaskClass"
             },
             "type": "array",
+            "minItems": 1,
             "title": "Classes"
           }
         },

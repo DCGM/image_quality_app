@@ -1,19 +1,39 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_users.exceptions import UserAlreadyExists
 
 from text_classifier.base_objects import UserCreate, UserRead, UserUpdate
 from text_classifier.config import config
-from text_classifier.database import Base, engine
+from text_classifier.database import Base, engine, get_async_session
 from text_classifier.routes import admin_route, api_route
-from text_classifier.users import auth_backend, fastapi_users
+from text_classifier.users import auth_backend, fastapi_users, get_user_db, get_user_manager
 
 app = FastAPI(title="text-classifier", version="0.1.0")
+
+
+async def create_admin_user() -> None:
+    """Create the admin superuser on first startup if it doesn't exist yet."""
+    try:
+        async for session in get_async_session():
+            async for user_db in get_user_db(session):
+                async for user_manager in get_user_manager(user_db):
+                    user = await user_manager.create(
+                        UserCreate(
+                            email=config.ADMIN,
+                            password=config.ADMIN_PASSWORD,
+                            is_superuser=True,
+                        )
+                    )
+                    print(f"Admin user created: {user.email}")
+    except UserAlreadyExists:
+        pass
 
 
 @app.on_event("startup")
 async def startup() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await create_admin_user()
 
 
 app.include_router(api_route, prefix='/api')
