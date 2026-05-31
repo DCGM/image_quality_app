@@ -13,12 +13,19 @@ export interface TaskDefinition {
   max_choices: number;
   enabled: boolean;
   classes: TaskClass[];
+  calib_ratio_initial: number;
+  calib_initial_count: number;
+  calib_ratio_ongoing: number;
+  repeat_probability: number;
+  target_coverage: number;
+  current_multiplier?: number | null;
 }
 
 export interface NextTextResponse {
   id: string;
   text: string;
   language: string;
+  calibration_task_ids: string[];
 }
 
 export interface TaskAnnotation {
@@ -62,6 +69,8 @@ export interface LeaderboardEntry {
   user_id: string;
   display_name: string;
   count: number;
+  score: number;
+  reliability: number | null;
 }
 
 export interface TextItemResponse {
@@ -69,6 +78,7 @@ export interface TextItemResponse {
   text_preview: string;
   language: string;
   suspended: boolean;
+  annotation_count: number;
 }
 
 export interface TextListResponse {
@@ -76,10 +86,33 @@ export interface TextListResponse {
   items: TextItemResponse[];
 }
 
+export interface TextAnnotationEntry {
+  annotation_id: string;
+  user_id: string;
+  display_name: string;
+  task_id: string;
+  selected_classes: string[];
+  annotation_type: string;
+  created_at: string | null;
+  points_earned: number | null;
+}
+
 export interface TaskStats {
   task_id: string;
   task_name: string;
   count: number;
+}
+
+export interface UserReliabilityResponse {
+  user_id: string;
+  display_name: string;
+  task_id: string;
+  annotation_count: number;
+  pairwise_agreement: number | null;
+  cohens_kappa: number | null;
+  krippendorffs_alpha: number | null;
+  ds_sensitivity: number | null;
+  computed_at: string | null;
 }
 
 export interface GlobalStats {
@@ -90,4 +123,6 @@ export interface GlobalStats {
 export interface MyStats {
   total: number;
   per_task: Record<string, number>;
+  score: number;
+  per_task_score: Record<string, number>;
 }

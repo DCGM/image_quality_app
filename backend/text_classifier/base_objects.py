@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 import uuid
 
 from fastapi_users import schemas
@@ -26,6 +27,14 @@ class TaskClass(BaseModel):
     description: str | None = None
 
 
+class TaskSamplingConfig(BaseModel):
+    calib_ratio_initial: float = Field(default=0.30, ge=0.0, le=1.0)
+    calib_initial_count: int = Field(default=20, ge=0)
+    calib_ratio_ongoing: float = Field(default=0.10, ge=0.0, le=1.0)
+    repeat_probability: float = Field(default=0.20, ge=0.0, le=1.0)
+    target_coverage: int = Field(default=3, ge=1)
+
+
 class TaskDefinition(BaseModel):
     id: str
     name: str
@@ -34,6 +43,13 @@ class TaskDefinition(BaseModel):
     max_choices: int = Field(default=1, ge=1)
     enabled: bool = True
     classes: list[TaskClass] = Field(min_length=1)
+    calib_ratio_initial: float = Field(default=0.30, ge=0.0, le=1.0)
+    calib_initial_count: int = Field(default=20, ge=0)
+    calib_ratio_ongoing: float = Field(default=0.10, ge=0.0, le=1.0)
+    repeat_probability: float = Field(default=0.20, ge=0.0, le=1.0)
+    target_coverage: int = Field(default=3, ge=1)
+    # Read-only: computed at query time, not stored
+    current_multiplier: float | None = None
 
     @model_validator(mode='after')
     def validate_choice_limits(self) -> 'TaskDefinition':
@@ -57,6 +73,7 @@ class NextTextResponse(BaseModel):
     id: str
     text: str
     language: str
+    calibration_task_ids: list[str] = Field(default_factory=list)
 
 
 class TaskAnnotation(BaseModel):
@@ -71,10 +88,22 @@ class AnnotationSubmit(BaseModel):
     annotations: list[TaskAnnotation]
 
 
+class AnnotationTypeValue(BaseModel):
+    annotation_type: Literal['ground_truth', 'llm']
+
+
+class BulkAnnotationItem(BaseModel):
+    text_id: str
+    task_id: str
+    selected_classes: list[str]
+
+
 class LeaderboardEntry(BaseModel):
     user_id: str
     display_name: str
     count: int
+    score: float = 0.0
+    reliability: float | None = None
 
 
 class TextItemResponse(BaseModel):
@@ -82,11 +111,23 @@ class TextItemResponse(BaseModel):
     text_preview: str
     language: str
     suspended: bool
+    annotation_count: int = 0
 
 
 class TextListResponse(BaseModel):
     total: int
     items: list[TextItemResponse]
+
+
+class TextAnnotationEntry(BaseModel):
+    annotation_id: str
+    user_id: str
+    display_name: str
+    task_id: str
+    selected_classes: list[str]
+    annotation_type: str
+    created_at: str | None
+    points_earned: float | None
 
 
 class TextPatch(BaseModel):
@@ -102,3 +143,22 @@ class TaskStats(BaseModel):
 class GlobalStats(BaseModel):
     total_annotations: int
     per_task: list[TaskStats]
+
+
+class UserReliabilityResponse(BaseModel):
+    user_id: str
+    display_name: str
+    task_id: str
+    annotation_count: int
+    pairwise_agreement: float | None
+    cohens_kappa: float | None
+    krippendorffs_alpha: float | None
+    ds_sensitivity: float | None
+    computed_at: datetime | None
+
+
+class MyStats(BaseModel):
+    total: int
+    per_task: dict[str, int]
+    score: float
+    per_task_score: dict[str, float]

@@ -1,7 +1,8 @@
 import { api } from 'boot/axios';
 import {
   AnnotationSubmit, BearerResponse, GlobalStats, LeaderboardEntry, LoginRequest,
-  MyStats, NextTextResponse, TaskDefinition, TextListResponse, UserCreate, UserRead,
+  MyStats, NextTextResponse, TaskDefinition, TextAnnotationEntry, TextListResponse,
+  UserCreate, UserRead, UserReliabilityResponse,
 } from 'src/types/api';
 
 class ApiService {
@@ -55,12 +56,20 @@ class ApiService {
     return (await api.post<{ imported: number }>('/api/admin/texts', jsonl, { headers: { 'Content-Type': 'text/plain' } })).data;
   }
 
-  async getAdminTexts(page = 0, q = '', pageSize = 50): Promise<TextListResponse> {
-    return (await api.get<TextListResponse>('/api/admin/texts', { params: { page, q, page_size: pageSize } })).data;
+  async getAdminTexts(page = 0, q = '', pageSize = 50, taskId?: string): Promise<TextListResponse> {
+    const params: Record<string, unknown> = { page, q, page_size: pageSize };
+    if (taskId) params.task_id = taskId;
+    return (await api.get<TextListResponse>('/api/admin/texts', { params })).data;
   }
 
   async patchAdminText(textId: string, suspended: boolean): Promise<void> {
     await api.patch(`/api/admin/texts/${textId}`, { suspended });
+  }
+
+  async getTextAnnotations(textId: string, taskId?: string): Promise<TextAnnotationEntry[]> {
+    const params: Record<string, unknown> = {};
+    if (taskId) params.task_id = taskId;
+    return (await api.get<TextAnnotationEntry[]>(`/api/admin/texts/${textId}/annotations`, { params })).data;
   }
 
   async getNextText(taskIds: string[]): Promise<NextTextResponse | null> {
@@ -68,8 +77,12 @@ class ApiService {
     return response.status === 204 ? null : response.data;
   }
 
-  async submitAnnotations(payload: AnnotationSubmit): Promise<void> {
-    await api.post('/api/annotations', payload);
+  async submitAnnotations(payload: AnnotationSubmit): Promise<{ points: Record<string, number> }> {
+    return (await api.post<{ points: Record<string, number> }>('/api/annotations', payload)).data;
+  }
+
+  async getGroundTruth(textId: string, taskIds: string[]): Promise<Record<string, string[]>> {
+    return (await api.get<Record<string, string[]>>(`/api/texts/${textId}/ground-truth`, { params: { task_ids: taskIds } })).data;
   }
 
   async getMyStats(): Promise<MyStats> {
@@ -86,6 +99,22 @@ class ApiService {
 
   async getOverallLeaderboard(sinceDays?: number): Promise<LeaderboardEntry[]> {
     return (await api.get<LeaderboardEntry[]>('/api/stats/leaderboard', { params: sinceDays ? { since_days: sinceDays } : {} })).data;
+  }
+
+  async uploadGroundTruth(jsonl: string): Promise<{ imported: number }> {
+    return (await api.post<{ imported: number }>('/api/admin/ground-truth', jsonl, { headers: { 'Content-Type': 'text/plain' } })).data;
+  }
+
+  async uploadLlmAnnotations(jsonl: string): Promise<{ imported: number }> {
+    return (await api.post<{ imported: number }>('/api/admin/llm-annotations', jsonl, { headers: { 'Content-Type': 'text/plain' } })).data;
+  }
+
+  async getAdminIrr(): Promise<UserReliabilityResponse[]> {
+    return (await api.get<UserReliabilityResponse[]>('/api/admin/irr')).data;
+  }
+
+  async recomputeIrr(): Promise<void> {
+    await api.post('/api/admin/irr/recompute');
   }
 }
 

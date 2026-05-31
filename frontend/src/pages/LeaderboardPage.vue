@@ -5,7 +5,16 @@
     <div class="text-h5 q-mb-sm">My contributions</div>
     <q-card class="q-mb-lg" bordered>
       <q-card-section>
-        <div class="text-h6 q-mb-sm">Total: <strong>{{ myStats.total }}</strong> annotations</div>
+        <div class="row q-col-gutter-md q-mb-sm">
+          <div class="col-auto">
+            <div class="text-caption text-grey-6">Annotations</div>
+            <div class="text-h6">{{ myStats.total }}</div>
+          </div>
+          <div class="col-auto">
+            <div class="text-caption text-grey-6">Score</div>
+            <div class="text-h6 text-primary">{{ myStats.score?.toFixed(1) ?? '0.0' }}</div>
+          </div>
+        </div>
         <q-table
           v-if="myPerTaskRows.length"
           :rows="myPerTaskRows"
@@ -81,10 +90,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref } from 'vue';
 import { QTableColumn } from 'quasar';
 import { apiService } from 'src/services/api';
-import { GlobalStats, LeaderboardEntry, MyStats, TaskDefinition, TaskStats } from 'src/types/api';
+import { GlobalStats, LeaderboardEntry, MyStats, TaskDefinition } from 'src/types/api';
 
 const myStats = ref<MyStats>({ total: 0, per_task: {} });
 const tasks = ref<TaskDefinition[]>([]);
@@ -102,11 +111,14 @@ const myPerTaskRows = ref<{ task_id: string; task_name: string; count: number }[
 const myStatsCols: QTableColumn[] = [
   { name: 'task_name', label: 'Task', field: 'task_name', align: 'left' },
   { name: 'count', label: 'Annotations', field: 'count', align: 'right' },
+  { name: 'score', label: 'Score', field: 'score', align: 'right', format: (v: number) => v?.toFixed(1) ?? '—' },
 ];
 const lbCols: QTableColumn[] = [
-  { name: 'rank', label: '#', field: (_, ri) => ri + 1, align: 'right', style: 'width:40px' },
+  { name: 'rank', label: '#', field: (_: LeaderboardEntry, ri: number) => ri + 1, align: 'right', style: 'width:40px' },
   { name: 'display_name', label: 'Annotator', field: 'display_name', align: 'left' },
   { name: 'count', label: 'Annotations', field: 'count', align: 'right' },
+  { name: 'score', label: 'Score', field: 'score', align: 'right', format: (v: number) => v?.toFixed(1) ?? '—' },
+  { name: 'reliability', label: 'Reliability', field: 'reliability', align: 'right', format: (v: number | null) => v != null ? `${(v * 100).toFixed(0)}%` : '—' },
 ];
 const taskStatsCols: QTableColumn[] = [
   { name: 'task_name', label: 'Task', field: 'task_name', align: 'left' },
@@ -130,7 +142,8 @@ onMounted(async () => {
   const taskNameMap: Record<string, string> = Object.fromEntries(tasks.value.map((t) => [t.id, t.name]));
   myPerTaskRows.value = Object.entries(myStats.value.per_task).map(([id, count]) => ({
     task_id: id, task_name: taskNameMap[id] || id, count,
-  })).sort((a, b) => b.count - a.count);
+    score: myStats.value.per_task_score?.[id] ?? 0,
+  })).sort((a, b) => b.score - a.score);
 
   loadingOverall.value = true;
   loadingGlobal.value = true;

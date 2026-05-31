@@ -9,8 +9,47 @@
       @confirmed="onTasksConfirmed"
     />
 
+    <!-- Calibration feedback overlay -->
+    <div v-if="calibFeedback.length" class="column items-center q-mt-xl">
+      <div class="text-h6 q-mb-md"><q-icon name="quiz" color="primary" class="q-mr-sm" />Calibration result</div>
+      <q-card
+        v-for="fb in calibFeedback"
+        :key="fb.task_id"
+        class="q-mb-md"
+        bordered
+        style="min-width:320px;max-width:560px;width:100%"
+      >
+        <q-card-section>
+          <div class="text-subtitle2 q-mb-sm">{{ fb.task_name }}</div>
+          <div class="row q-col-gutter-md">
+            <div class="col-6">
+              <div class="text-caption text-grey-6">Your answer</div>
+              <div class="text-body2">{{ fb.submitted.join(', ') || '—' }}</div>
+            </div>
+            <div class="col-6">
+              <div class="text-caption text-grey-6">Correct answer</div>
+              <div class="text-body2">{{ fb.gt.join(', ') || '—' }}</div>
+            </div>
+          </div>
+        </q-card-section>
+        <q-separator />
+        <q-card-section class="row items-center">
+          <q-icon
+            :name="fb.match ? 'check_circle' : 'cancel'"
+            :color="fb.match ? 'positive' : 'negative'"
+            size="24px"
+            class="q-mr-sm"
+          />
+          <span :class="fb.match ? 'text-positive' : 'text-negative'">
+            {{ fb.match ? 'Correct!' : 'Incorrect' }}
+          </span>
+        </q-card-section>
+      </q-card>
+      <q-btn color="primary" label="Continue" icon-right="arrow_forward" @click="continueAfterCalib" />
+    </div>
+
     <!-- No tasks selected yet -->
-    <div v-if="selectedTaskIds.length === 0" class="column items-center q-mt-xl">
+    <div v-else-if="selectedTaskIds.length === 0" class="column items-center q-mt-xl">
       <q-icon name="checklist" size="64px" color="grey-5" />
       <div class="text-h6 text-grey-6 q-mt-md">No tasks selected</div>
       <q-btn class="q-mt-lg" color="primary" icon="add_task" label="Choose tasks" @click="openTaskDialog" />
@@ -174,6 +213,14 @@ import { NextTextResponse, TaskDefinition } from 'src/types/api';
 import TaskSelectionDialog from 'components/TaskSelectionDialog.vue';
 import MarkdownView from 'components/MarkdownView.vue';
 
+interface CalibItem {
+  task_id: string;
+  task_name: string;
+  submitted: string[];
+  gt: string[];
+  match: boolean;
+}
+
 const allTasks = ref<TaskDefinition[]>([]);
 const tasks = ref<TaskDefinition[]>([]);
 const textItem = ref<NextTextResponse | null>(null);
@@ -185,17 +232,10 @@ const showTaskDialog = ref(false);
 const showDescription = ref(false);
 const currentTaskIndex = ref(0);
 const taskStartTimes = ref<Record<string, string>>({});
+const calibFeedback = ref<CalibItem[]>([]);
 
-const selectedTaskIds = ref<string[]>(
-  JSON.parse(localStorage.getItem('selected_tasks') || '[]') as string[]
-);
-
+const selectedTaskIds = ref<string[]>(JSON.parse(localStorage.getItem('selected_tasks') ?? '[]'));
 const currentTask = computed(() => tasks.value[currentTaskIndex.value] ?? null);
-
-const firstUnansweredIndex = computed(() => {
-  const idx = tasks.value.findIndex((t) => selectedClasses(t).length === 0);
-  return idx === -1 ? tasks.value.length - 1 : idx;
-});
 
 const selectedClasses = (task: TaskDefinition): string[] => {
   const value = answers.value[task.id];
@@ -281,9 +321,11 @@ const submit = async () => {
   if (!textItem.value || !allAnswered.value) return;
   submitting.value = true;
   const endTime = new Date().toISOString();
+  const submittedTextItem = textItem.value;
+  const submittedAnswers = { ...answers.value };
   try {
     await apiService.submitAnnotations({
-      text_id: textItem.value.id,
+      text_id: submittedTextItem.id,
       annotations: tasks.value.map((t) => ({
         task_id: t.id,
         selected_classes: selectedClasses(t),
@@ -291,10 +333,30 @@ const submit = async () => {
         end_time: endTime,
       })),
     });
+    // Show calibration feedback if needed
+    const calibIds = submittedTextItem.calibration_task_ids ?? [];
+    if (calibIds.length > 0) {
+      const gtMap = await apiService.getGroundTruth(submittedTextItem.id, calibIds);
+      calibFeedback.value = calibIds
+        .filter((tid) => tid in gtMap)
+        .map((tid) => {
+          const task = tasks.value.find((t) => t.id === tid);
+          const submitted = (Array.isArray(submittedAnswers[tid]) ? submittedAnswers[tid] : submittedAnswers[tid] ? [submittedAnswers[tid]] : []) as string[];
+          const gt = gtMap[tid] ?? [];
+          const match = submitted.length === gt.length && submitted.every((c) => gt.includes(c));
+          return { task_id: tid, task_name: task?.name ?? tid, submitted, gt, match };
+        });
+      if (calibFeedback.value.length > 0) return; // wait for user to click Continue
+    }
     await load();
   } finally {
     submitting.value = false;
   }
+};
+
+const continueAfterCalib = async () => {
+  calibFeedback.value = [];
+  await load();
 };
 
 // Reload when tasks list is available

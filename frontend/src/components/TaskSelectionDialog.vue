@@ -36,7 +36,12 @@
                   {{ task.multi_choice ? `Multi-choice (up to ${task.max_choices})` : 'Single choice' }}
                 </q-item-label>
               </q-item-section>
-              <q-item-section side>
+              <q-item-section side class="row items-center q-gutter-xs no-wrap">
+                <q-badge
+                  v-if="task.current_multiplier && task.current_multiplier > 1.0"
+                  color="orange"
+                  :label="`×${task.current_multiplier.toFixed(1)} pts`"
+                />
                 <q-badge v-if="selected.includes(task.id)" color="positive" label="selected" />
               </q-item-section>
             </template>
