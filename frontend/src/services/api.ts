@@ -1,5 +1,8 @@
 import { api } from 'boot/axios';
-import { AnnotationSubmit, BearerResponse, LoginRequest, NextTextResponse, TaskDefinition, UserCreate, UserRead } from 'src/types/api';
+import {
+  AnnotationSubmit, BearerResponse, GlobalStats, LeaderboardEntry, LoginRequest,
+  MyStats, NextTextResponse, TaskDefinition, TextListResponse, UserCreate, UserRead,
+} from 'src/types/api';
 
 class ApiService {
   async login(credentials: LoginRequest): Promise<BearerResponse> {
@@ -20,6 +23,10 @@ class ApiService {
     return (await api.post<UserRead>('/auth/register', userData)).data;
   }
 
+  async logout(): Promise<void> {
+    await api.post('/auth/jwt/logout').catch(() => undefined);
+  }
+
   async getTasks(): Promise<TaskDefinition[]> {
     return (await api.get<TaskDefinition[]>('/api/tasks')).data;
   }
@@ -32,12 +39,28 @@ class ApiService {
     await api.put(`/api/admin/tasks/${task.id}`, task);
   }
 
+  async createAdminTask(task: TaskDefinition): Promise<void> {
+    await api.post('/api/admin/tasks', task);
+  }
+
+  async patchAdminTask(taskId: string, patch: { enabled?: boolean; deleted?: boolean }): Promise<void> {
+    await api.patch(`/api/admin/tasks/${taskId}`, patch);
+  }
+
   async importPromptTasks(): Promise<{ imported: number }> {
     return (await api.post<{ imported: number }>('/api/admin/tasks/import-prompts')).data;
   }
 
-  async uploadTextsJsonl(jsonl: string): Promise<void> {
-    await api.post('/api/admin/texts', jsonl, { headers: { 'Content-Type': 'text/plain' } });
+  async uploadTextsJsonl(jsonl: string): Promise<{ imported: number }> {
+    return (await api.post<{ imported: number }>('/api/admin/texts', jsonl, { headers: { 'Content-Type': 'text/plain' } })).data;
+  }
+
+  async getAdminTexts(page = 0, q = '', pageSize = 50): Promise<TextListResponse> {
+    return (await api.get<TextListResponse>('/api/admin/texts', { params: { page, q, page_size: pageSize } })).data;
+  }
+
+  async patchAdminText(textId: string, suspended: boolean): Promise<void> {
+    await api.patch(`/api/admin/texts/${textId}`, { suspended });
   }
 
   async getNextText(taskIds: string[]): Promise<NextTextResponse | null> {
@@ -49,12 +72,20 @@ class ApiService {
     await api.post('/api/annotations', payload);
   }
 
-  async getMyStats(): Promise<{ total: number; per_task: Record<string, number> }> {
-    return (await api.get('/api/stats/me')).data;
+  async getMyStats(): Promise<MyStats> {
+    return (await api.get<MyStats>('/api/stats/me')).data;
   }
 
-  async getLeaderboard(taskId: string): Promise<Array<{ user_id: string; count: number }>> {
-    return (await api.get(`/api/stats/leaderboard/${taskId}`)).data;
+  async getGlobalStats(): Promise<GlobalStats> {
+    return (await api.get<GlobalStats>('/api/stats/global')).data;
+  }
+
+  async getLeaderboard(taskId: string, sinceDays?: number): Promise<LeaderboardEntry[]> {
+    return (await api.get<LeaderboardEntry[]>(`/api/stats/leaderboard/${taskId}`, { params: sinceDays ? { since_days: sinceDays } : {} })).data;
+  }
+
+  async getOverallLeaderboard(sinceDays?: number): Promise<LeaderboardEntry[]> {
+    return (await api.get<LeaderboardEntry[]>('/api/stats/leaderboard', { params: sinceDays ? { since_days: sinceDays } : {} })).data;
   }
 }
 

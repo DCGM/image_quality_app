@@ -1,203 +1,186 @@
 # AGENTS.md — Coding Agent Guidelines
 
-This file documents conventions, workflows, and requirements for AI coding agents (and human developers) working in this repository.
-
----
-
 ## Project Overview
 
-**semant_text_cl_app** is a human text-classification web application. Annotators log in, select up to 6 classification tasks, and label text passages one by one. The collected labels serve as ground truth for benchmarking AI text-classification methods.
+**semant_text_cl_app** collects human text-classification annotations for benchmarking AI classifiers. Annotators log in, select up to 6 tasks, and label texts one by one.
 
-- **Backend**: Python (FastAPI, SQLAlchemy async, fastapi-users, pydantic v2)  
-- **Frontend**: Quasar v2 (Vue 3 Composition API, TypeScript, Pinia, Axios)  
-- **Database**: SQLite (dev) / PostgreSQL (prod via `DATABASE_URL` env var)  
-- **Auth**: JWT bearer tokens via fastapi-users  
+- **Backend**: Python (FastAPI, SQLAlchemy async, fastapi-users, Pydantic v2)
+- **Frontend**: Quasar v2 (Vue 3 Composition API, TypeScript, Pinia, Axios)
+- **Database**: SQLite (dev) / PostgreSQL (prod via `DATABASE_URL`)
+- **Auth**: JWT bearer tokens via fastapi-users
 
 ---
 
 ## Repository Layout
 
 ```
-backend/                Python FastAPI application
-  text_classifier/      Main package (renamed from title_annotator)
-    config.py           Settings from environment variables
-    database.py         Async SQLAlchemy engine + User table
-    db_model.py         ORM models
+backend/
+  text_classifier/      Main package
+    config.py           Settings from env vars
+    database.py         Async SQLAlchemy engine + User table + DBError
+    db_model.py         ORM models (Task, TextItem, Annotation)
+    base_objects.py     Pydantic v2 request/response schemas
     crud.py             Database access functions
-    routes.py           FastAPI routers
+    routes.py           FastAPI routers (api_route, admin_route)
     main.py             App factory + middleware
     users.py            fastapi-users configuration
+    prompt_parser.py    Markdown → task definition parser
   tests/                pytest test suite
   run.py                Entry-point (uvicorn)
-  requirements.txt      Python dependencies
+  requirements.txt
 
-frontend/               Quasar / Vue 3 SPA
+frontend/
   src/
     pages/              One .vue file per route
     components/         Reusable UI components
-    services/api.ts     Axios API wrapper
-    types/api.ts        TypeScript interfaces matching backend schemas
-    stores/             Pinia stores
+    services/api.ts     Axios API wrapper (all API calls go here)
+    types/api.ts        TypeScript interfaces mirroring backend schemas
+    stores/             Pinia stores (one per domain: auth, tasks, annotations)
     router/routes.ts    Vue Router config
 
-prompts/                Classification task definitions (Markdown, one file per task)
+prompts/                Classification task definitions (Markdown, one per task)
 logs/                   Change summaries (see below)
 example.jsonl           Sample text upload file
-rebuild_task.md         Ongoing design notes and task breakdown
 ```
 
 ---
 
-## Running the Application
+## Running
 
 ### Backend
 ```bash
 cd backend
 pip install -r requirements.txt
-python run.py          # starts on port 8002 by default
+python run.py          # default: http://localhost:8002
 ```
 
-Key environment variables (all optional, sensible defaults in `config.py`):
+Key env vars (all optional):
+
 | Variable | Default | Description |
 |---|---|---|
 | `DATABASE_URL` | `sqlite+aiosqlite:///database.sqlite` | SQLAlchemy async URL |
-| `PRODUCTION` | `false` | Disables CORS wildcard, enables stricter settings |
+| `PRODUCTION` | `false` | When true, CORS middleware is omitted (use reverse proxy) |
 | `PORT` | `8002` | uvicorn listen port |
-| `ALLOWED_ORIGIN` | `http://localhost:9000` | Frontend origin for CORS |
-| `JWT_PRIVATE_KEY` | `supersecret` | **Must be changed in production** |
-| `SECRET` | `XYZ123…` | fastapi-users secret — **must be changed in production** |
-| `ADMIN` | (email) | Email of the initial superuser |
-| `ADMIN_PASSWORD` | `admin123` | **Must be changed in production** |
+| `ALLOWED_ORIGIN` | `http://pchradis2.fit.vutbr.cz:9005` | Allowed CORS origin in dev |
+| `JWT_PRIVATE_KEY` | `supersecret` | **Change in production** |
+| `SECRET` | `XYZ123…` | fastapi-users secret — **change in production** |
+| `ADMIN` | `admin@example.com` | Initial superuser email |
+| `ADMIN_PASSWORD` | `admin123` | **Change in production** |
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-npm run dev            # starts on http://localhost:9000 (Quasar default)
+npm run dev            # http://localhost:9000
 npm run build          # production build → dist/spa/
 ```
 
 ---
 
-## Running Tests
+## Tests
 
 ```bash
 cd backend
-pip install pytest pytest-asyncio
 pytest tests/
 ```
 
-- Tests live in `backend/tests/`.  
-- All new backend features **must** include corresponding tests.  
-- Use a temporary in-memory or file-based SQLite database for integration tests (see `tests_crud.py` for the pattern).  
-- Frontend tests: currently none — add Vitest unit tests for complex store/service logic when introduced.
+All new backend features must include tests. Use a temporary SQLite database for integration tests (see `tests/test_text_classifier_crud.py` for the pattern). Frontend tests: Vitest unit tests for complex store/service logic when introduced.
 
 ---
 
 ## Code Conventions
 
-### Backend (Python)
-- Python ≥ 3.11; use `from __future__ import annotations` where helpful.
-- Async-first: all DB calls use `AsyncSession`; do not mix sync SQLAlchemy.
-- Pydantic v2 models for all request/response schemas in `base_objects.py` (or a renamed equivalent).
-- Raise `DBError` (defined in `database.py`) for database-layer failures; let FastAPI exception handlers convert to HTTP responses.
-- Never store secrets in source files — always read from environment variables via `config.py`.
-- Keep routes thin: business logic belongs in `crud.py` or dedicated service modules.
+### Backend
+- Python ≥ 3.11; `from __future__ import annotations` where helpful.
+- Async-first: all DB calls use `AsyncSession`; no sync SQLAlchemy.
+- Pydantic v2 schemas in `base_objects.py`.
+- Raise `DBError` (defined in `database.py`) for database-layer failures.
+- No secrets in source files — read from env via `config.py`.
+- Keep routes thin: business logic in `crud.py` or service modules.
 
-### Frontend (TypeScript / Vue)
+### Frontend
 - Vue 3 Composition API (`<script setup>`); no Options API.
-- All API types must mirror backend Pydantic schemas in `src/types/api.ts`.
-- API calls go through `src/services/api.ts` — do not call `axios` directly from components or stores.
+- All API types in `src/types/api.ts` must mirror backend schemas.
+- API calls through `src/services/api.ts` only — no direct `axios` calls from components.
 - One Pinia store per domain (auth, tasks, annotations).
-- Quasar components preferred over raw HTML for UI consistency.
+- Quasar components preferred over raw HTML.
 
 ### General
-- No hard-coded credentials, URLs, or file paths — use env vars or config objects.
-- Keep commits small and focused; one logical change per commit.
+- No hard-coded credentials, URLs, or file paths.
+- Commits: one logical change per commit.
 
 ---
 
 ## Documentation
 
-- Public-facing API changes must be reflected in `frontend/openapi.json` (regenerate with FastAPI's `/openapi.json` endpoint).
-- Significant refactors or new features should update `rebuild_task.md` and/or add a file under `docs/` if needed.
-- Each classification task description lives in `prompts/{task_id}.md` and follows the established format (see existing files).
+- Public-facing API changes must be reflected in `frontend/openapi.json` (regenerate from `/openapi.json`).
+- Significant changes should update `rebuild_task.md` and/or `docs/`.
+- Each classification task lives in `prompts/{task_id}.md`.
 
 ---
 
 ## Change Log
 
-**Every non-trivial change must be summarised in a dedicated log file:**
+Every non-trivial change must have a log file:
 
 ```
-logs/{iso_datetime}_{task}.md
+logs/{YYYYMMDDTHHMMSS}_{short_snake_case_description}.md
 ```
 
-- `iso_datetime` — UTC timestamp in `YYYYMMDDTHHMMSS` format, e.g. `20260508T143000`.
-- `task` — short snake_case description, e.g. `rename_package`, `add_annotation_api`, `leaderboard_page`.
-- The log file should contain: what changed, why, and any decisions made.
-
-Example path: `logs/20260508T143000_rename_package.md`
-
-The `logs/` directory is committed to the repository.
+Contents: what changed, why, decisions made. The `logs/` directory is committed.
 
 ---
 
-## Security Checklist (OWASP Top 10 reminders)
+## Security (OWASP Top 10)
 
-- **A01 Broken Access Control**: All admin routes must check `user.is_superuser`. User-scoped routes must never expose other users' data.
-- **A02 Cryptographic Failures**: `JWT_PRIVATE_KEY`, `SECRET`, and `ADMIN_PASSWORD` must be strong random values in production.
-- **A03 Injection**: Use SQLAlchemy ORM or parameterised queries exclusively — never interpolate user input into SQL.
-- **A05 Security Misconfiguration**: `PRODUCTION=true` must be set in production to disable CORS wildcard.
-- **A07 Identification and Authentication Failures**: JWT lifetime is configurable; keep it short in production.
+- **A01 Broken Access Control**: Admin routes check `user.is_superuser`. User routes never expose other users' data.
+- **A02 Cryptographic Failures**: `JWT_PRIVATE_KEY`, `SECRET`, `ADMIN_PASSWORD` must be strong random values in production.
+- **A03 Injection**: Use SQLAlchemy ORM / parameterised queries only — never interpolate user input into SQL.
+- **A05 Security Misconfiguration**: Set `PRODUCTION=true` in production; CORS middleware is then omitted (handled by reverse proxy).
+- **A07 Auth Failures**: Keep JWT lifetime short in production.
 
 ---
 
-## Task Definition Format (JSON for DB import)
-
-When parsing `.md` prompt files or creating new tasks, produce JSON in this canonical shape:
+## Task Definition Format
 
 ```json
 {
   "id": "style",
   "name": "Style",
-  "description_md": "# Task\nCharacterise the register/style…",
+  "description_md": "# Task\n…",
   "multi_choice": true,
   "max_choices": 2,
   "enabled": true,
   "classes": [
-    {"id": "formal",       "label_en": "Formal",       "label_cs": "formální"},
-    {"id": "neutral",      "label_en": "Neutral",      "label_cs": "neutrální"}
+    {"id": "formal", "label_en": "Formal", "label_cs": "formální"}
   ]
 }
 ```
 
-Admin uploads this JSON file via `POST /api/admin/tasks`.
+Upload via `POST /api/admin/tasks` or use the Admin page import button.
 
 ---
 
 ## Text Upload Format (JSONL)
 
-See `example.jsonl` for the full schema. Required fields the app extracts:
+Required fields per line:
 
 | Field | Type | Notes |
-|-------|------|-------|
-| `id` | string (UUID) | Unique text identifier; duplicate uploads are upserted |
-| `text` | string | The passage shown to annotators |
+|---|---|---|
+| `id` | string | Unique text identifier; duplicates are upserted |
+| `text` | string | Passage shown to annotators |
 | `language` | string | ISO 639-3 code (e.g. `ces`, `eng`) |
 
-All other fields are stored verbatim as a JSON blob for later export and comparison with AI-generated labels.
+All other fields are stored as raw JSON for export and benchmarking.
 
 ---
 
-## Key Design Decisions (recorded here for reference)
+## Key Design Decisions
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Task selection UX | User picks ≤ 6 tasks; texts served one-by-one | Keeps cognitive load manageable |
-| Task definitions storage | DB (parsed from .md → JSON → uploaded) | Allows runtime admin control |
+| Task selection UX | User picks ≤ 6 tasks; texts served one-by-one | Manageable cognitive load |
+| Task storage | DB (parsed from `.md` → JSON → uploaded) | Runtime admin control |
 | Text storage | Full JSON blob + extracted fields | Preserves AI labels for benchmarking |
-| Duplicate text upload | Upsert by `id` | Safe re-import of updated data |
-| Registration | Open (no invite token) | Low friction for annotators |
-| Backend package name | `text_classifier` (renamed from `title_annotator`) | Reflects new purpose |
-| DB schema | `tasks`, `texts`, `annotations` tables | Clean break from old rating schema |
+| Duplicate upload | Upsert by `id` | Safe re-import |
+| Registration | Open | Low friction for annotators |

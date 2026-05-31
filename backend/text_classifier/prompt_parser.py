@@ -39,10 +39,12 @@ def _extract_classes(text: str) -> list[dict[str, str]]:
         if match:
             class_id = match.group('id').strip()
             label_cs = (match.group('label_cs') or class_id).strip()
+            description = (match.group('description') or '').strip() or None
             classes.append({
                 'id': class_id,
                 'label_en': _humanize(class_id),
                 'label_cs': label_cs,
+                'description': description,
             })
     if not classes:
         raise ValueError('No classes found in prompt file')

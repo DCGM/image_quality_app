@@ -6,8 +6,8 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', redirect: '/tasks' },
-      { path: 'tasks', component: () => import('pages/TaskSelectionPage.vue'), meta: { requiresAuth: true } },
+      { path: '', redirect: '/classify' },
+      { path: 'tasks', redirect: '/classify' },
       { path: 'classify', component: () => import('pages/ClassificationPage.vue'), meta: { requiresAuth: true } },
       { path: 'leaderboard', component: () => import('pages/LeaderboardPage.vue'), meta: { requiresAuth: true } },
       { path: 'admin', component: () => import('pages/AdminPage.vue'), meta: { requiresAuth: true } },

@@ -83,6 +83,12 @@
               ]"
             />
 
+            <q-input
+              v-model="registerDisplayName"
+              label="Display name (optional)"
+              outlined
+            />
+
             <div class="row q-gutter-sm">
               <q-btn
                 type="submit"
@@ -125,6 +131,7 @@ const showRegisterDialog = ref(false);
 const registerEmail = ref('');
 const registerPassword = ref('');
 const registerPasswordConfirm = ref('');
+const registerDisplayName = ref('');
 const registerLoading = ref(false);
 
 const onSubmit = async () => {
@@ -140,7 +147,7 @@ const onSubmit = async () => {
       message: 'Login successful',
     });
 
-    router.push('/tasks');
+    router.push('/classify');
   } catch (error) {
     const err = error as { response?: { data?: { detail?: string } } };
     $q.notify({
@@ -158,6 +165,7 @@ const onRegister = async () => {
     await apiService.register({
       email: registerEmail.value,
       password: registerPassword.value,
+      display_name: registerDisplayName.value || undefined,
     });
 
     $q.notify({
@@ -173,6 +181,7 @@ const onRegister = async () => {
     registerEmail.value = '';
     registerPassword.value = '';
     registerPasswordConfirm.value = '';
+    registerDisplayName.value = '';
   } catch (error) {
     const err = error as {
       response?: {

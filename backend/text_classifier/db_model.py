@@ -29,6 +29,7 @@ class TextItem(Base):
     text: Mapped[str] = mapped_column(SQLText, nullable=False)
     language: Mapped[str] = mapped_column(String, nullable=False)
     raw_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    suspended: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default='0')
 
 
 class Annotation(Base):

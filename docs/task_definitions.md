@@ -13,8 +13,8 @@ Task definitions are the central configuration object for annotation. A task con
   "max_choices": 2,
   "enabled": true,
   "classes": [
-    {"id": "formal", "label_en": "Formal", "label_cs": "formální"},
-    {"id": "neutral", "label_en": "Neutral", "label_cs": "neutrální"}
+    {"id": "formal", "label_en": "Formal", "label_cs": "formální", "description": "elevated, conventionally polished language"},
+    {"id": "neutral", "label_en": "Neutral", "label_cs": "neutrální", "description": null}
   ]
 }
 ```
@@ -47,6 +47,7 @@ The imported classes become:
 | Humanized class ID | `classes[].label_en` |
 | Backticked label after `/` | `classes[].label_cs` |
 | Missing Czech label | Falls back to the class ID |
+| Text after `—` | `classes[].description` (shown as tooltip; `null` if absent) |
 
 ## Single-choice versus multi-choice
 

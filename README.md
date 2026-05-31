@@ -37,14 +37,17 @@ The compiled app will call that API URL at runtime.
 - `POST /api/annotations`
 - `GET /api/stats/me`
 - `GET /api/stats/leaderboard/{task_id}`
+- `GET /api/admin/tasks`
 - `POST /api/admin/tasks`
+- `PUT /api/admin/tasks/{task_id}`
 - `PATCH /api/admin/tasks/{task_id}`
 - `POST /api/admin/texts`
 - `POST /api/admin/tasks/import-prompts`
 
 ## Notes
-- Task definitions are stored in DB and support single-choice or multi-choice labels.
-- Text uploads are JSONL; full row JSON is stored for downstream benchmarking/export.
+- Task definitions are stored in DB and support single-choice or multi-choice labels. Each class may carry an optional `description` shown as a tooltip to annotators.
+- Text uploads are JSONL; full row JSON is stored for downstream benchmarking/export. Individual texts can be suspended by admins to exclude them from the annotation queue.
+- Users may set a `display_name` at registration; this name appears in the navbar and on leaderboards.
 
 ## Docker compose deployment
 ```bash

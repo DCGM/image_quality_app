@@ -34,10 +34,10 @@ Write one or two class labels.
     assert out['multi_choice'] is True
     assert out['max_choices'] == 2
     assert out['classes'] == [
-        {'id': 'narration', 'label_en': 'Narration', 'label_cs': 'vyprávěcí'},
-        {'id': 'other_mode', 'label_en': 'Other mode', 'label_cs': 'other_mode'},
-        {'id': 'uncertain', 'label_en': 'Uncertain', 'label_cs': 'uncertain'},
-    ]
+            {'id': 'narration', 'label_en': 'Narration', 'label_cs': 'vyprávěcí', 'description': 'recounts events'},
+            {'id': 'other_mode', 'label_en': 'Other mode', 'label_cs': 'other_mode', 'description': 'recognizable communicative mode not covered'},
+            {'id': 'uncertain', 'label_en': 'Uncertain', 'label_cs': 'uncertain', 'description': 'cannot be determined'},
+        ]
 
 
 def test_parse_prompt_file_extracts_possible_classes_as_single_choice(tmp_path: Path):

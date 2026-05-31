@@ -24,9 +24,11 @@ flowchart LR
 
 ## Frontend responsibilities
 
-- The task selection page loads enabled tasks and stores the selected task IDs locally.
-- The classification page renders radio buttons for single-choice tasks and checkboxes for multi-choice tasks.
-- The admin page imports markdown prompts, edits task names/prompts/choices, toggles enabled status, and uploads text JSONL.
+- After login, users are directed to the **classification page**, which shows one task at a time with a progress bar and an always-visible summary panel listing all tasks and their current answers.
+- The summary panel allows jumping to any already-answered task or the immediately next unanswered task.
+- The admin page is split into three tabs: **Tasks** (browse/create/edit/delete tasks), **Import** (import `prompts/*.md`), and **Texts** (upload JSONL, browse with search/pagination, suspend/unsuspend).
+- The leaderboard page shows the current user's contributions, an overall top-annotators leaderboard (weekly / all-time tabs), a global per-task statistics table, and per-task leaderboards loaded on demand.
+- The navbar displays the user's `display_name` (or email if not set) and links to the classification, leaderboard, and admin pages.
 
 ## Annotation flow
 
@@ -39,7 +41,7 @@ sequenceDiagram
 
     U->>SPA: Select up to 6 tasks
     SPA->>API: POST /api/texts/next {task_ids}
-    API->>DB: Find least-covered unseen text
+    API->>DB: Find least-covered unseen non-suspended text
     DB-->>API: Text item or none
     API-->>SPA: 200 text or 204 no content
     U->>SPA: Choose classes per task

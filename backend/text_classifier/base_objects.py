@@ -8,21 +8,22 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
-    pass
+    display_name: str | None = None
 
 
 class UserCreate(schemas.BaseUserCreate):
-    pass
+    display_name: str | None = None
 
 
 class UserUpdate(schemas.BaseUserUpdate):
-    pass
+    display_name: str | None = None
 
 
 class TaskClass(BaseModel):
     id: str
     label_en: str
     label_cs: str
+    description: str | None = None
 
 
 class TaskDefinition(BaseModel):
@@ -68,3 +69,36 @@ class TaskAnnotation(BaseModel):
 class AnnotationSubmit(BaseModel):
     text_id: str
     annotations: list[TaskAnnotation]
+
+
+class LeaderboardEntry(BaseModel):
+    user_id: str
+    display_name: str
+    count: int
+
+
+class TextItemResponse(BaseModel):
+    id: str
+    text_preview: str
+    language: str
+    suspended: bool
+
+
+class TextListResponse(BaseModel):
+    total: int
+    items: list[TextItemResponse]
+
+
+class TextPatch(BaseModel):
+    suspended: bool
+
+
+class TaskStats(BaseModel):
+    task_id: str
+    task_name: str
+    count: int
+
+
+class GlobalStats(BaseModel):
+    total_annotations: int
+    per_task: list[TaskStats]

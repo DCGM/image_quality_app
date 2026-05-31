@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from text_classifier import base_objects
+from text_classifier.database import User
 from text_classifier.db_model import Annotation, Task, TextItem
 
 
@@ -53,6 +56,7 @@ async def get_next_text(db: AsyncSession, user_id, task_ids: list[str]):
         select(TextItem)
         .outerjoin(subq, TextItem.id == subq.c.text_id)
         .where(TextItem.id.not_in(select(user_done.c.text_id)))
+        .where(TextItem.suspended.is_(False))
         .order_by(func.coalesce(subq.c.coverage, 0).asc(), TextItem.id.asc())
         .limit(1)
     )
@@ -84,15 +88,68 @@ async def my_stats(db: AsyncSession, user_id):
     return {"total": sum(totals.values()), "per_task": totals}
 
 
-async def leaderboard(db: AsyncSession, task_id: str):
-    rows = await db.execute(
-        select(Annotation.user_id, func.count().label("count"))
+def _display_name(dn: str | None, user_id) -> str:
+    return dn if dn else str(user_id)[:8]
+
+
+async def leaderboard(db: AsyncSession, task_id: str, since: datetime | None = None) -> list[dict]:
+    q = (
+        select(Annotation.user_id, func.count().label("count"), User.display_name)
+        .outerjoin(User, User.id == Annotation.user_id)
         .where(Annotation.task_id == task_id)
-        .group_by(Annotation.user_id)
-        .order_by(func.count().desc())
-        .limit(20)
     )
-    return [{"user_id": str(u), "count": c} for u, c in rows.all()]
+    if since:
+        q = q.where(Annotation.created_at >= since)
+    q = q.group_by(Annotation.user_id, User.display_name).order_by(func.count().desc()).limit(20)
+    rows = await db.execute(q)
+    return [{"user_id": str(u), "display_name": _display_name(dn, u), "count": c} for u, c, dn in rows.all()]
+
+
+async def leaderboard_overall(db: AsyncSession, since: datetime | None = None) -> list[dict]:
+    q = (
+        select(Annotation.user_id, func.count().label("count"), User.display_name)
+        .outerjoin(User, User.id == Annotation.user_id)
+    )
+    if since:
+        q = q.where(Annotation.created_at >= since)
+    q = q.group_by(Annotation.user_id, User.display_name).order_by(func.count().desc()).limit(20)
+    rows = await db.execute(q)
+    return [{"user_id": str(u), "display_name": _display_name(dn, u), "count": c} for u, c, dn in rows.all()]
+
+
+async def global_stats(db: AsyncSession) -> dict:
+    task_rows = await db.execute(
+        select(Annotation.task_id, Task.name, func.count(Annotation.id).label("count"))
+        .join(Task, Task.id == Annotation.task_id)
+        .group_by(Annotation.task_id, Task.name)
+        .order_by(func.count(Annotation.id).desc())
+    )
+    total_row = await db.execute(select(func.count()).select_from(Annotation))
+    return {
+        "total_annotations": total_row.scalar_one(),
+        "per_task": [{"task_id": tid, "task_name": name, "count": c} for tid, name, c in task_rows.all()],
+    }
+
+
+async def list_texts(db: AsyncSession, page: int = 0, q: str = '', page_size: int = 50) -> dict:
+    query = select(TextItem).order_by(TextItem.id)
+    if q:
+        query = query.where(TextItem.text.ilike(f'%{q}%'))
+    total_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(total_q)).scalar_one()
+    rows = (await db.execute(query.offset(page * page_size).limit(page_size))).scalars().all()
+    return {
+        "total": total,
+        "items": [{"id": t.id, "text_preview": t.text[:120], "language": t.language, "suspended": t.suspended} for t in rows],
+    }
+
+
+async def set_text_suspended(db: AsyncSession, text_id: str, suspended: bool) -> bool:
+    item = await db.get(TextItem, text_id)
+    if item is None:
+        return False
+    item.suspended = suspended
+    return True
 
 
 async def upsert_text(db: AsyncSession, text_id: str, text: str, language: str, raw_json: dict):
@@ -103,3 +160,42 @@ async def upsert_text(db: AsyncSession, text_id: str, text: str, language: str, 
         db_text.text = text
         db_text.language = language
         db_text.raw_json = raw_json
+
+
+
+async def upsert_task(db: AsyncSession, task: base_objects.TaskDefinition) -> None:
+    db_task = await db.get(Task, task.id)
+    payload = task.model_dump()
+    if db_task is None:
+        db.add(Task(**payload))
+    else:
+        for k, v in payload.items():
+            setattr(db_task, k, v)
+
+
+async def set_task_state(db: AsyncSession, task_id: str, patch: base_objects.TaskStatePatch) -> bool:
+    task = await db.get(Task, task_id)
+    if task is None:
+        return False
+    if patch.deleted:
+        await db.execute(delete(Task).where(Task.id == task_id))
+        return True
+    if patch.enabled is not None:
+        task.enabled = patch.enabled
+    return True
+
+
+async def list_tasks(db: AsyncSession, *, enabled_only: bool = False) -> list[Task]:
+    query = select(Task).order_by(Task.id)
+    if enabled_only:
+        query = query.where(Task.enabled.is_(True))
+    rows = await db.execute(query)
+    return list(rows.scalars().all())
+
+
+async def list_enabled_tasks(db: AsyncSession) -> list[Task]:
+    return await list_tasks(db, enabled_only=True)
+
+
+
+
