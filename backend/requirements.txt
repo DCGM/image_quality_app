@@ -4,3 +4,5 @@ uvicorn[standard]
 aiosqlite
 pydantic
 pydantic-settings
+pillow
+python-multipart

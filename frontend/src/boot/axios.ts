@@ -8,7 +8,7 @@ declare module '@vue/runtime-core' {
   }
 }
 
-const resolvedApiUrl = process.env.API_URL || 'http://localhost:8002';
+const resolvedApiUrl = process.env.API_URL || 'http://localhost:8003';
 
 const api = axios.create({
   baseURL: resolvedApiUrl,

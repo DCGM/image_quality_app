@@ -2,9 +2,9 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated class="bg-primary">
       <q-toolbar>
-        <q-toolbar-title class="text-weight-bold">Text Classifier</q-toolbar-title>
-        <q-btn flat round dense icon="rate_review" to="/classify" class="q-mr-xs">
-          <q-tooltip>Annotate</q-tooltip>
+        <q-toolbar-title class="text-weight-bold">Image Rater</q-toolbar-title>
+        <q-btn flat round dense icon="photo_library" to="/tasks" class="q-mr-xs">
+          <q-tooltip>Tasks</q-tooltip>
         </q-btn>
         <q-btn flat round dense icon="leaderboard" to="/leaderboard" class="q-mr-xs">
           <q-tooltip>Leaderboard</q-tooltip>

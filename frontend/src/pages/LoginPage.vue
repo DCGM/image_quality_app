@@ -147,7 +147,7 @@ const onSubmit = async () => {
       message: 'Login successful',
     });
 
-    router.push('/classify');
+    router.push('/tasks');
   } catch (error) {
     const err = error as { response?: { data?: { detail?: string } } };
     $q.notify({

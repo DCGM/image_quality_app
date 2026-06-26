@@ -1,44 +1,4 @@
-export interface TaskClass {
-  id: string;
-  label_en: string;
-  label_cs: string;
-  description?: string;
-}
-
-export interface TaskDefinition {
-  id: string;
-  name: string;
-  description_md: string;
-  multi_choice: boolean;
-  max_choices: number;
-  enabled: boolean;
-  classes: TaskClass[];
-  calib_ratio_initial: number;
-  calib_initial_count: number;
-  calib_ratio_ongoing: number;
-  repeat_probability: number;
-  target_coverage: number;
-  current_multiplier?: number | null;
-}
-
-export interface NextTextResponse {
-  id: string;
-  text: string;
-  language: string;
-  calibration_task_ids: string[];
-}
-
-export interface TaskAnnotation {
-  task_id: string;
-  selected_classes: string[];
-  start_time: string;
-  end_time: string;
-}
-
-export interface AnnotationSubmit {
-  text_id: string;
-  annotations: TaskAnnotation[];
-}
+// Types mirroring backend image_rater/base_objects.py
 
 export interface UserRead {
   id: string;
@@ -49,15 +9,15 @@ export interface UserRead {
   is_verified: boolean;
 }
 
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
 export interface UserCreate {
   email: string;
   password: string;
   display_name?: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
 }
 
 export interface BearerResponse {
@@ -65,64 +25,178 @@ export interface BearerResponse {
   token_type: string;
 }
 
+// Tasks
+export interface TaskRead {
+  id: string;
+  name: string;
+  description_md: string;
+  instructions_md: string;
+  task_type: 'two_forced_choice' | 'single_rating';
+  enabled: boolean;
+  pair_algorithm: string | null;
+  rating_options: string[] | null;
+  rating_hotkeys: string[] | null;
+  bonus_multiplier: number;
+  calib_ratio: number;
+}
+
+export interface TaskCreate {
+  id: string;
+  name: string;
+  description_md: string;
+  instructions_md: string;
+  task_type: 'two_forced_choice' | 'single_rating';
+  pair_algorithm?: string | null;
+  rating_options?: string[] | null;
+  rating_hotkeys?: string[] | null;
+  bonus_multiplier?: number;
+  calib_ratio?: number;
+}
+
+export interface TaskStatePatch {
+  enabled?: boolean;
+  deleted?: boolean;
+  bonus_multiplier?: number;
+}
+
+// Images
+export interface ImageItemResponse {
+  id: string;
+  task_id: string;
+  filename: string;
+  group_id: string;
+  url: string;
+  suspended: boolean;
+  width: number | null;
+  height: number | null;
+}
+
+export interface ImageListResponse {
+  total: number;
+  items: ImageItemResponse[];
+}
+
+// Next item to annotate
+export interface NextPairResponse {
+  task_id: string;
+  image_a_id: string;
+  image_b_id: string;
+  image_a_url: string;
+  image_b_url: string;
+  group_id: string;
+  is_reliability_check: boolean;
+}
+
+export interface NextImageResponse {
+  task_id: string;
+  image_id: string;
+  image_url: string;
+  group_id: string;
+  is_reliability_check: boolean;
+}
+
+// Submissions
+export interface ComparisonSubmit {
+  task_id: string;
+  image_a_id: string;
+  image_b_id: string;
+  winner_id: string;
+  start_time: string;
+  end_time: string;
+}
+
+export interface RatingSubmit {
+  task_id: string;
+  image_id: string;
+  selected_option: string;
+  start_time: string;
+  end_time: string;
+}
+
+// Rankings
+export interface ImageRankingResponse {
+  image_id: string;
+  filename: string;
+  url: string;
+  score: number;
+  comparisons: number;
+  wins: number;
+}
+
+// Admin lists
+export interface ComparisonRecord {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  task_id: string;
+  group_id: string;
+  image_a_id: string;
+  image_b_id: string;
+  winner_id: string | null;
+  is_reliability_check: boolean;
+  points_earned: number | null;
+  created_at: string;
+}
+
+export interface RatingRecord {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  task_id: string;
+  image_id: string;
+  selected_option: string | null;
+  is_reliability_check: boolean;
+  points_earned: number | null;
+  created_at: string;
+}
+
+export interface PaginatedComparisons {
+  total: number;
+  items: ComparisonRecord[];
+}
+
+export interface PaginatedRatings {
+  total: number;
+  items: RatingRecord[];
+}
+
+// Stats & Leaderboard
 export interface LeaderboardEntry {
   user_id: string;
-  display_name: string;
+  display_name: string | null;
   count: number;
   score: number;
   reliability: number | null;
 }
 
-export interface TextItemResponse {
-  id: string;
-  text_preview: string;
-  language: string;
-  suspended: boolean;
-  annotation_count: number;
-}
-
-export interface TextListResponse {
-  total: number;
-  items: TextItemResponse[];
-}
-
-export interface TextAnnotationEntry {
-  annotation_id: string;
-  user_id: string;
-  display_name: string;
-  task_id: string;
-  selected_classes: string[];
-  annotation_type: string;
-  created_at: string | null;
-  points_earned: number | null;
-}
-
 export interface TaskStats {
   task_id: string;
   task_name: string;
-  count: number;
-}
-
-export interface UserReliabilityResponse {
-  user_id: string;
-  display_name: string;
-  task_id: string;
-  annotation_count: number;
-  pairwise_agreement: number | null;
-  cohens_kappa: number | null;
-  krippendorffs_alpha: number | null;
-  ds_sensitivity: number | null;
-  computed_at: string | null;
+  comparison_count: number;
+  rating_count: number;
 }
 
 export interface GlobalStats {
-  total_annotations: number;
+  total_comparisons: number;
+  total_ratings: number;
   per_task: TaskStats[];
 }
 
 export interface MyStats {
-  total: number;
-  per_task: Record<string, number>;
+  total_comparisons: number;
+  total_ratings: number;
   score: number;
-  per_task_score: Record<string, number>;
+  per_task_comparisons: Record<string, number>;
+  per_task_ratings: Record<string, number>;
+}
+
+// Reliability
+export interface UserReliabilityResponse {
+  user_id: string;
+  display_name: string | null;
+  task_id: string;
+  annotation_count: number;
+  consistency_score: number | null;
+  inter_rater_agreement: number | null;
+  computed_at: string | null;
 }

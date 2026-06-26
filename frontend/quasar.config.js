@@ -70,7 +70,7 @@ module.exports = configure(function (/* ctx */) {
       // publicPath: '/',
       // analyze: true,
       env: {
-        API_URL: process.env.API_URL || 'http://localhost:8002'
+        API_URL: process.env.API_URL || 'http://pchradis2.fit.vutbr.cz:8003'
       },
       // rawDefine: {}
       // ignorePublicFolder: true,
@@ -89,6 +89,7 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
+      port: 9005,
       // https: true
       open: true // opens browser window automatically
     },
